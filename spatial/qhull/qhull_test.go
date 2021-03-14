@@ -40,15 +40,45 @@ func TestSharePlane(t *testing.T) {
 			want: true,
 		},
 
-		// Four points in 3D on a plane (z=0)
+		// Four points in a plane (z=0)
 		{
 			points: []Point{{1.0, 2.0, 0.0}, {3.0, -1.0, 0.0}, {-1.0, -50.0, 0.0}, {80.0, 1.0, 0.0}},
+			want: true,
+		},
+
+		// Four points in a plane (y=0)
+		{
+			points: []Point{{1.0, 0.0, 6.0}, {3.0, 0.0, -40.0}, {-1.0, 0.0, 0.0}, {80.0, 0.0, 32.0}},
+			want: true,
+		},
+
+		// Four points in a plane (x=0)
+		{
+			points: []Point{{0.0, 0.0, 6.0}, {0.0, 2.0, -40.0}, {0.0, -50.0, 0.0}, {0.0, -6.0, 32.0}},
 			want: true,
 		},
 
 		// Four points in 3D not on a plane
 		{
 			points: []Point{{1.0, 2.0, 0.0}, {3.0, -1.0, 0.0}, {-1.0, -50.0, 0.0}, {80.0, 1.0, 1.0}},
+			want: false,
+		},
+
+		// Four points in 3D not in the plane x + y = 0
+		{
+			points: []Point{{1.0, -1.0, 0.0}, {3.0, -3.0, 0.0}, {-1.0, 1.0, 0.0}, {-1.0, 1.0, 1.0}},
+			want: true,
+		},
+
+		// Four points in 3D in the plane x - 2z = 1
+		{
+			points: []Point{{1.0, -1.0, 0.0}, {3.0, -3.1, 1.0}, {-1.0, 1.0, -1.0}, {-2.0, 1.0, -1.5}},
+			want: true,
+		},
+
+		// Four points in 3D not in the plane x - 2z = 1 (add 0.01 to the z coordinate of the last point)
+		{
+			points: []Point{{1.0, -1.0, 0.0}, {3.0, -3.1, 1.0}, {-1.0, 1.0, -1.0}, {-2.0, 1.0, -1.49}},
 			want: false,
 		},
 	}{
