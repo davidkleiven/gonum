@@ -9,6 +9,13 @@ import (
 // interface.
 type Point []float64
 
+// Subtract ohter from the receiver
+func (p Point) Subtract(other Point) {
+	for j := range other {
+		p[j] -= other[j]
+	}
+}
+
 // centroid calculates the centroid of the set of points
 func centroid(points []Point) Point {
 	c := make(Point, len(points[0]))
@@ -33,9 +40,7 @@ func shift(points []Point, distance Point) {
 	}
 }
 
-// fitPlane fits a plane to the set of points and return the normal vector. Note
-// that the points array will be mutated by the method in the sense that the centroid
-// is subtracted
+// fitPlane fits a plane to the set of points and return the normal vector.
 func fitPlane(points []Point) mat.Vector {
 	if len(points) == 0 {
 		panic("No points given, can't fit a plane")
@@ -44,12 +49,12 @@ func fitPlane(points []Point) mat.Vector {
 	dim := len(points[0])
 	
 	// By shifting the points by the centroid, we ensure that the origin lies in the plane
-	shift(points, centroid(points))
+	c := centroid(points)
 
 	A := mat.NewDense(dim, len(points), nil)
 	for i := range points {
 		for j, v := range points[i] {
-			A.Set(j, i, v)
+			A.Set(j, i, v - c[j])
 		}
 	}
 
@@ -83,10 +88,12 @@ func shareHyperPlane(points []Point, tol float64) bool {
 		return true
 	}
 
+	c := centroid(points)
 	normal := fitPlane(points)
 	
 	// If all points are perpendicular to the normal, they are in the same plane
 	for _, p := range points {
+		p.Subtract(c)
 		if math.Abs(dotPointVector(p, normal)) > tol {
 			return false
 		}
