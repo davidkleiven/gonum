@@ -9,13 +9,6 @@ import (
 // interface.
 type Point []float64
 
-// Subtract ohter from the receiver
-func (p Point) Subtract(other Point) {
-	for j := range other {
-		p[j] -= other[j]
-	}
-}
-
 // centroid calculates the centroid of the set of points
 func centroid(points []Point) Point {
 	c := make(Point, len(points[0]))
@@ -29,15 +22,6 @@ func centroid(points []Point) Point {
 		c[i] /= float64(len(points))
 	}
 	return c
-}
-
-// shift shifts the set points by distance (e.g. points = points - distance)
-func shift(points []Point, distance Point) {
-	for i, p := range points {
-		for j := range distance {
-			points[i][j] = p[j] - distance[j]
-		}
-	}
 }
 
 // fitPlane fits a plane to the set of points and return the normal vector.
@@ -91,10 +75,11 @@ func shareHyperPlane(points []Point, tol float64) bool {
 	c := centroid(points)
 	normal := fitPlane(points)
 	
+	centroidDotNormal := dotPointVector(c, normal)
 	// If all points are perpendicular to the normal, they are in the same plane
 	for _, p := range points {
-		p.Subtract(c)
-		if math.Abs(dotPointVector(p, normal)) > tol {
+		// Want to check if (p - c) * normal = 0, where c is the centroid
+		if math.Abs(dotPointVector(p, normal) - centroidDotNormal) > tol {
 			return false
 		}
 	}
