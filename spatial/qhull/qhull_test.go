@@ -88,3 +88,26 @@ func TestSharePlane(t *testing.T) {
 		}
 	}
 }
+
+func TestInitialHull(t *testing.T) {
+	points := []Point{{1.0, -1.0, 0.0}, {3.0, -3.1, 1.0}, {-1.0, 1.0, -1.0}, {-2.0, 1.0, -1.49}}
+	facets := initialHull(points, 1e-6)
+
+	want := []Facet{
+		{1, 2, 3},
+		{0, 2, 3},
+		{0, 1, 3},
+		{0, 1, 2},
+	}
+
+	if len(facets) != len(want) {
+		t.Errorf("Wrong number of facets. Got %d want %d\n", len(facets), len(want))
+	}
+	for i := range facets {
+		for j := range facets[i] {
+			if facets[i][j] != want[i][j] {
+				t.Errorf("Facet #%d: wanted %v got %v\n", i, want[i], facets[i])
+			}
+		}
+	}
+}

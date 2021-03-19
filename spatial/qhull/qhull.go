@@ -36,6 +36,36 @@ func (p Point) T() mat.Matrix {
 	return mat.Transpose{p}
 }
 
+type Facet []int
+
+type ConvexHull struct {
+	Facets []Facet
+	Points []Point
+}
+
+// FacetCentroid calculates the centroid the given facet
+func (c ConvexHull) FacetCentroid(facetNo int) Point {
+	p := make(Point, len(c.Points[0]))
+	for _, v := range c.Facets[facetNo] {
+		for j := range p {
+			p[j] += c.Points[v][j]/float64(len(c.Facets[facetNo]))
+		}
+	}
+	return p
+}
+
+// Centroid returns the centroid off the hull (e.g. centroid of the centroids of all facets)
+func (c ConvexHull) Centroid() Point {
+	p := make(Point, len(c.Points[0]))
+	for i := range c.Facets {
+		c := c.FacetCentroid(i)
+		for j := range p {
+			p[j] += c[j]/float64(len(c.Facets))
+		}
+	}
+	return p
+}
+
 // centroid calculates the centroid of the set of points
 func centroid(points []Point) Point {
 	c := make(Point, len(points[0]))
@@ -79,15 +109,6 @@ func fitPlane(points []Point) mat.Vector {
 	return U.ColView(dim-1)
 }
 
-// dot calculates calculates the dot product between a point and a vector
-func dotPointVector(p Point, v mat.Vector) float64 {
-	s := 0.0
-	for j, x := range p {
-		s += x*v.AtVec(j)
-	}
-	return s
-}
-
 // shareHyperPlane returns true if all points lies in a hyper plane.
 func shareHyperPlane(points []Point, tol float64) bool {
 	if len(points) == 0 {
@@ -111,4 +132,70 @@ func shareHyperPlane(points []Point, tol float64) bool {
 		}
 	}
 	return true
+}
+
+// initialHull returns the facets of the initial hull. The initial hull is constructed from the
+// first d+1 one points that don't lie in the same hyper-plane, where d is the spatial dimension.
+// The initial hull always consists of the first d points, and then the last point is chosen as the
+// first subsequent point such that all points don't share a hyper-plane
+func initialHull(points []Point, tol float64) []Facet {
+	if len(points) == 0 {
+		return nil
+	}
+
+	dim := len(points[0])
+	idx := make([]int, dim+1)
+
+	// Pick d+1 points that does not share a hyper-plane
+	for i := 0;i<dim;i++ {
+		idx[i] = i
+	}
+
+	// Select the last point such that not all share in the same hyper-plane
+	chosenPoints := make([]Point, dim+1)
+	copy(chosenPoints, points[:dim])
+
+	ok := false
+	for j, p := range points[dim:] {
+		chosenPoints[dim] = p
+		if !shareHyperPlane(chosenPoints, tol) {
+			idx[dim] = dim + j
+			ok = true
+			break
+		}
+	}
+
+	if !ok {
+		panic("All points are in the same hyperplane.")
+	}
+
+	facets := make([]Facet, len(idx))
+
+	// Construct all facets from set of 
+	for i := range idx {
+		facets[i] = make(Facet, len(idx)-1)
+		
+		counter := 0
+		for j, v := range idx {
+			if j != i {
+				facets[i][counter] = v
+				counter += 1
+			}
+		}
+	}
+	return facets
+}
+
+func Quickhull(points []Point) ConvexHull {
+	facets := initialHull(points, 1e-6)
+	hull := ConvexHull{
+		Facets: initialHull(points, 1e-6),
+		Points: points,
+	}
+}
+
+// isAbove returns true if the point p is above the facet as seen from the
+// observation point
+func isAbove(facet Facet, p Point, observationPoint Point, points []Point) bool {
+
 }
