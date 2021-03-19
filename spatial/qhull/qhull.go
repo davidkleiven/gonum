@@ -2,6 +2,7 @@ package qhull
 
 import (
 	"math"
+
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -36,36 +37,6 @@ func (p Point) T() mat.Matrix {
 	return mat.Transpose{p}
 }
 
-type Facet []int
-
-type ConvexHull struct {
-	Facets []Facet
-	Points []Point
-}
-
-// FacetCentroid calculates the centroid the given facet
-func (c ConvexHull) FacetCentroid(facetNo int) Point {
-	p := make(Point, len(c.Points[0]))
-	for _, v := range c.Facets[facetNo] {
-		for j := range p {
-			p[j] += c.Points[v][j]/float64(len(c.Facets[facetNo]))
-		}
-	}
-	return p
-}
-
-// Centroid returns the centroid off the hull (e.g. centroid of the centroids of all facets)
-func (c ConvexHull) Centroid() Point {
-	p := make(Point, len(c.Points[0]))
-	for i := range c.Facets {
-		c := c.FacetCentroid(i)
-		for j := range p {
-			p[j] += c[j]/float64(len(c.Facets))
-		}
-	}
-	return p
-}
-
 // centroid calculates the centroid of the set of points
 func centroid(points []Point) Point {
 	c := make(Point, len(points[0]))
@@ -88,25 +59,25 @@ func fitPlane(points []Point) mat.Vector {
 	}
 
 	dim := len(points[0])
-	
+
 	// By shifting the points by the centroid, we ensure that the origin lies in the plane
 	c := centroid(points)
 
 	A := mat.NewDense(dim, len(points), nil)
 	for i := range points {
 		for j, v := range points[i] {
-			A.Set(j, i, v - c[j])
+			A.Set(j, i, v-c[j])
 		}
 	}
 
-	// Calculate the normal vector to the plane 
+	// Calculate the normal vector to the plane
 	var svd mat.SVD
 	svd.Factorize(A, mat.SVDFullU)
 	var U mat.Dense
 	svd.UTo(&U)
 
-	// The normal vector is given by the 
-	return U.ColView(dim-1)
+	// The normal vector is given by the
+	return U.ColView(dim - 1)
 }
 
 // shareHyperPlane returns true if all points lies in a hyper plane.
@@ -122,12 +93,12 @@ func shareHyperPlane(points []Point, tol float64) bool {
 
 	c := centroid(points)
 	normal := fitPlane(points)
-	
+
 	centroidDotNormal := mat.Dot(c, normal)
 	// If all points are perpendicular to the normal, they are in the same plane
 	for _, p := range points {
 		// Want to check if (p - c) * normal = 0, where c is the centroid
-		if math.Abs(mat.Dot(p, normal) - centroidDotNormal) > tol {
+		if math.Abs(mat.Dot(p, normal)-centroidDotNormal) > tol {
 			return false
 		}
 	}
@@ -147,7 +118,7 @@ func initialHull(points []Point, tol float64) []Facet {
 	idx := make([]int, dim+1)
 
 	// Pick d+1 points that does not share a hyper-plane
-	for i := 0;i<dim;i++ {
+	for i := 0; i < dim; i++ {
 		idx[i] = i
 	}
 
@@ -171,24 +142,25 @@ func initialHull(points []Point, tol float64) []Facet {
 
 	facets := make([]Facet, len(idx))
 
-	// Construct all facets from set of 
+	// Construct all facets from set of
 	for i := range idx {
 		facets[i] = make(Facet, len(idx)-1)
-		
+
 		counter := 0
 		for j, v := range idx {
 			if j != i {
 				facets[i][counter] = v
-				counter += 1
+				counter++
 			}
 		}
 	}
 	return facets
 }
 
-func Quickhull(points []Point) ConvexHull {
+// Quickhull constructs the convex hull of the point cloud using the quickhull algorithm
+func Quickhull(points []Point) SimplexMesh {
 	facets := initialHull(points, 1e-6)
-	hull := ConvexHull{
+	hull := SimplexMesh{
 		Facets: initialHull(points, 1e-6),
 		Points: points,
 	}
@@ -196,6 +168,15 @@ func Quickhull(points []Point) ConvexHull {
 
 // isAbove returns true if the point p is above the facet as seen from the
 // observation point
-func isAbove(facet Facet, p Point, observationPoint Point, points []Point) bool {
+func isAbove(simplex []Point, p Point, obs Point) bool {
+	c := centroid(simplex)
 
+	// If the dot product between the vector from the centroid to the point p and the vector
+	// from the centroid to the observation point is positive, the point is above the facet
+	// as seen from the observation point (e.g. (p-c)*(obs-c) > 0
+	pDotObs := mat.Dot(p, obs)
+	pDotc := mat.Dot(p, c)
+	obsDotc := mat.Dot(obs, c)
+	cDotc := mat.Dot(c, c)
+	return pDotObs+cDotc-pDotc-obsDotc > 0.0
 }
