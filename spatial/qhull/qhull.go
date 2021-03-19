@@ -172,11 +172,11 @@ func isAbove(simplex []Point, p Point, obs Point) bool {
 	c := centroid(simplex)
 
 	// If the dot product between the vector from the centroid to the point p and the vector
-	// from the centroid to the observation point is positive, the point is above the facet
-	// as seen from the observation point (e.g. (p-c)*(obs-c) > 0
+	// from the centroid to the observation point is negative, the point is above the facet
+	// as seen from the observation point (e.g. (p-c)*(obs-c) < 0
 	pDotObs := mat.Dot(p, obs)
 	pDotc := mat.Dot(p, c)
 	obsDotc := mat.Dot(obs, c)
 	cDotc := mat.Dot(c, c)
-	return pDotObs+cDotc-pDotc-obsDotc > 0.0
+	return pDotObs+cDotc-pDotc-obsDotc < 0.0
 }
